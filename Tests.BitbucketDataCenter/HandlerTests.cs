@@ -1,8 +1,8 @@
-﻿using Apps.Appname.Handlers;
+﻿using Apps.BitbucketDataCenter.Handlers;
 using Blackbird.Applications.Sdk.Common.Dynamic;
-using Tests.Appname.Base;
+using Tests.BitbucketDataCenter.Base;
 
-namespace Tests.Appname;
+namespace Tests.BitbucketDataCenter;
 
 [TestClass]
 public class HandlerTests : TestBase

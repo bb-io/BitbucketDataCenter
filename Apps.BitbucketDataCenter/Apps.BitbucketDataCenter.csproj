@@ -4,10 +4,10 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Product>Appname</Product>
-        <Description>Description</Description>
+        <Product>Bitbucket Data Center [Beta]</Product>
+        <Description>Bitbucket Data Center is a self-managed solution that provides source code collaboration for professional teams of any size</Description>
         <Version>1.0.0</Version>
-        <AssemblyName>Apps.Appname</AssemblyName>
+        <PackageId>Apps.BitbucketDataCenter</PackageId>
     </PropertyGroup>
 
     <ItemGroup>

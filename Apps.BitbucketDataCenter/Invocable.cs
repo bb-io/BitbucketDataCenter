@@ -1,9 +1,9 @@
-using Apps.Appname.Api;
+using Apps.BitbucketDataCenter.Api;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Invocation;
 
-namespace Apps.Appname;
+namespace Apps.BitbucketDataCenter;
 
 public class Invocable : BaseInvocable
 {

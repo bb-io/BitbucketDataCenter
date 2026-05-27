@@ -1,8 +1,8 @@
-﻿using Apps.Appname.Constants;
+﻿using Apps.BitbucketDataCenter.Constants;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Connections;
 
-namespace Apps.Appname.Connections;
+namespace Apps.BitbucketDataCenter.Connections;
 
 public class ConnectionDefinition : IConnectionDefinition
 {

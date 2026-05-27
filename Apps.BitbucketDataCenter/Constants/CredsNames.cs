@@ -1,4 +1,4 @@
-namespace Apps.Appname.Constants;
+namespace Apps.BitbucketDataCenter.Constants;
 
 public static class CredsNames
 {
