@@ -2,7 +2,7 @@
 using Blackbird.Applications.Sdk.Common.Invocation;
 
 namespace Apps.BitbucketDataCenter.Handlers;
-public class DynamicHandler(InvocationContext invocationContext) : Invocable(invocationContext), IAsyncDataSourceItemHandler
+public class DynamicHandler(InvocationContext invocationContext) : BitbucketInvocable(invocationContext), IAsyncDataSourceItemHandler
 {
     public Task<IEnumerable<DataSourceItem>> GetDataAsync(DataSourceContext context, CancellationToken cancellationToken)
     {
