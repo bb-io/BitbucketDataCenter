@@ -1,6 +1,5 @@
 using System.Net.Mime;
 using Apps.BitbucketDataCenter.Api;
-using Apps.BitbucketDataCenter.Constants;
 using Apps.BitbucketDataCenter.Extensions;
 using Apps.BitbucketDataCenter.Models.Identifier;
 using Apps.BitbucketDataCenter.Models.Identifier.Optional;
@@ -12,7 +11,6 @@ using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
-using Blackbird.Applications.Sdk.Utils.Extensions.Sdk;
 using Blackbird.Filters.Transformations;
 using RestSharp;
 
@@ -41,14 +39,15 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         
         byte[] bytes = response.RawBytes ?? 
                        throw new PluginMisconfigurationException("The downloaded file has no content");
-        var stream = new MemoryStream(bytes);
 
         string fileName = response.GetFilenameFromDispositionHeader(filePath);
         string contentType = response.ContentType ?? MediaTypeNames.Application.Octet;
-        
+
+        var stream = new MemoryStream(bytes);
         var fileResult = Transformation.Load(stream, fileName, contentType).Source();
         if (!fileResult.Success)
         {
+            stream.Position = 0;
             var directFileReference = await fileManagementClient.UploadAsync(stream, contentType, fileName);
             InvocationContext.Logger?.LogInformation($"Not a Blackbird interoperable file: {fileResult.Error}", []);
             return new(directFileReference);
@@ -59,7 +58,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         fileContent.Language = downloadInput.SourceLanguage;
         fileContent.SystemReference.ContentId = downloadInput.ContentId;
         fileContent.SystemReference.AddMetadata(
-            Creds.Get(CredsNames.InstanceUrl).Value.TrimEnd('/'), 
+            InstanceUrl, 
             projectKey, 
             repositorySlug, 
             branchIdentifier.BranchId, 
@@ -71,7 +70,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
     }
 
     // https://developer.atlassian.com/server/bitbucket/rest/v1005/api-group-repository/#api-api-latest-projects-projectkey-repos-repositoryslug-browse-path-put
-    [Action("Upload file", Description = "Commit a file upload. Overwrites existing files")]
+    [Action("Upload file", Description = "Commit a file upload - either create a new file or overwrite the existing one")]
     public async Task<FileResponse> UploadFile(
         [ActionParameter] ProjectIdentifier projectIdentifier,
         [ActionParameter] RepositoryIdentifier repositoryIdentifier,
@@ -82,18 +81,21 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         string projectKey = projectIdentifier.ProjectKey;
         string repositorySlug = repositoryIdentifier.RepositorySlug;
         string branchId = branchIdentifier.BranchId ?? await Client.GetDefaultBranchId(projectKey, repositorySlug);
-        string filePath = string.IsNullOrWhiteSpace(fileIdentifier.FilePath)
-            ? uploadInput.File.Name
-            : fileIdentifier.FilePath;
-        string fileName = Path.GetFileName(filePath);
-        string? sourceCommitId = await Client.GetLastCommitId(projectKey, repositorySlug, filePath, branchId);
+        string uploadFileName = uploadInput.File.Name;
 
         await using var fileStream = await fileManagementClient.DownloadAsync(uploadInput.File);
-        var transformationResult = Transformation.Load(fileStream, uploadInput.File.Name, uploadInput.File.ContentType);
+        var transformationResult = Transformation.Load(fileStream, uploadFileName, uploadInput.File.ContentType);
+        fileStream.Position = 0;
         
-        transformationResult.ReadContent(fileStream, InvocationContext.Logger);
-        var fileBytes = await fileStream.GetByteData();
-
+        await using var contentStream = transformationResult.ReadContent(fileStream, InvocationContext.Logger);
+        var targetResult = transformationResult.Success ? transformationResult.Value.Target() : null;
+        
+        string defaultPath = targetResult is { Success: true } ? targetResult.Value.OriginalName : uploadFileName;
+        string filePath = string.IsNullOrWhiteSpace(fileIdentifier.FilePath) ? defaultPath : fileIdentifier.FilePath;
+        string fileName = Path.GetFileName(filePath);
+        byte[] fileBytes = await contentStream.GetByteData();
+        string? sourceCommitId = await Client.GetLastCommitId(projectKey, repositorySlug, filePath, branchId);
+        
         string endpoint = $"projects/{projectKey}/repos/{repositorySlug}/browse/{filePath}";
         var request = new BitbucketRequest(endpoint, Method.Put) { AlwaysMultipartFormData = true }
             .AddParameter("branch", branchId)
@@ -108,10 +110,10 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         
         var transformation = transformationResult.Value;
         transformation.TargetSystemReference.AddMetadata(
-            Creds.Get(CredsNames.InstanceUrl).Value.TrimEnd('/'), 
+            InstanceUrl, 
             projectKey, 
             repositorySlug, 
-            branchIdentifier.BranchId, 
+            branchId, 
             filePath, 
             fileName);
 
