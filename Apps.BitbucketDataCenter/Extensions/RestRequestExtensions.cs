@@ -12,4 +12,13 @@ public static class RestRequestExtensions
         request.AddQueryParameter(key, value);
         return request;
     }
+    
+    public static RestRequest AddParameterIfNotEmpty(this RestRequest request, string key, string? value)
+    {
+        if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(value))
+            return request;
+
+        request.AddParameter(key, value);
+        return request;
+    }
 }

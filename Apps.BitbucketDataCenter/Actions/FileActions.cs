@@ -11,8 +11,10 @@ using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
+using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Extensions.Sdk;
 using Blackbird.Filters.Transformations;
+using RestSharp;
 
 namespace Apps.BitbucketDataCenter.Actions;
 
@@ -66,5 +68,38 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
         var file = await fileManagementClient.UploadAsync(fileContent.ToStream(), contentType, fileName);
         return new(file);
+    }
+
+    // https://developer.atlassian.com/server/bitbucket/rest/v1005/api-group-repository/#api-api-latest-projects-projectkey-repos-repositoryslug-browse-path-put
+    [Action("Upload file", Description = "Commit a file upload. Overwrites existing files")]
+    public async Task UploadFile(
+        [ActionParameter] ProjectIdentifier projectIdentifier,
+        [ActionParameter] RepositoryIdentifier repositoryIdentifier,
+        [ActionParameter] OptionalFileIdentifier fileIdentifier,
+        [ActionParameter] OptionalBranchIdentifier branchIdentifier,
+        [ActionParameter] UploadFileRequest uploadInput)
+    {
+        string projectKey = projectIdentifier.ProjectKey;
+        string repositorySlug = repositoryIdentifier.RepositorySlug;
+        string branchId = branchIdentifier.BranchId ?? await Client.GetDefaultBranchId(projectKey, repositorySlug);
+        string filePath = string.IsNullOrWhiteSpace(fileIdentifier.FilePath)
+            ? uploadInput.File.Name
+            : fileIdentifier.FilePath;
+        string? sourceCommitId = await Client.GetLastCommitId(projectKey, repositorySlug, filePath, branchId);
+
+        await using var fileStream = await fileManagementClient.DownloadAsync(uploadInput.File);
+        var fileBytes = await fileStream.GetByteData();
+
+        var request = new BitbucketRequest($"projects/{projectKey}/repos/{repositorySlug}/browse/{filePath}", Method.Put)
+        {
+            AlwaysMultipartFormData = true
+        };
+        request
+            .AddParameter("branch", branchId)
+            .AddFile("content", fileBytes, Path.GetFileName(filePath))
+            .AddParameter("message", uploadInput.CommitMessage ?? $"Upload {filePath}")
+            .AddParameterIfNotEmpty("sourceCommitId", sourceCommitId);
+
+        await Client.ExecuteWithErrorHandling(request);
     }
 }
