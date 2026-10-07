@@ -19,7 +19,7 @@ public static class TransformationExtensions
         reference.AdminUrl = $"{baseUrl}/projects/{projectKey}/repos/{repositorySlug}/browse/{escapedPath}";
         if (!string.IsNullOrWhiteSpace(branchName))
         {
-            string escapedRef = Uri.EscapeDataString($"refs/heads/{branchName}");
+            string escapedRef = Uri.EscapeDataString(branchName);
             reference.AdminUrl += $"?at={escapedRef}";
         }
 
