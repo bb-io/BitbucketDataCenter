@@ -24,6 +24,7 @@ public class FileDataHandler : BitbucketInvocable, IAsyncDataSourceItemHandler
         _repositorySlug = repositoryIdentifier.RepositorySlug;
     }
 
+    // https://developer.atlassian.com/server/bitbucket/rest/v1005/api-group-repository/#api-api-latest-projects-projectkey-repos-repositoryslug-files-get
     public async Task<IEnumerable<DataSourceItem>> GetDataAsync(DataSourceContext context, CancellationToken ct)
     {
         var request = new BitbucketRequest($"projects/{_projectKey}/repos/{_repositorySlug}/files");

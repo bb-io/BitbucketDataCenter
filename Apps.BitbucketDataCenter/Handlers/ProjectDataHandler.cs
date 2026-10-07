@@ -9,6 +9,7 @@ namespace Apps.BitbucketDataCenter.Handlers;
 public class ProjectDataHandler(InvocationContext invocationContext) 
     : BitbucketInvocable(invocationContext), IAsyncDataSourceItemHandler
 {
+    // https://developer.atlassian.com/server/bitbucket/rest/v1005/api-group-project/#api-api-latest-projects-get
     public async Task<IEnumerable<DataSourceItem>> GetDataAsync(DataSourceContext context, CancellationToken ct)
     {
         var request = new BitbucketRequest("projects").AddQueryParameterIfNotEmpty("name", context.SearchString);

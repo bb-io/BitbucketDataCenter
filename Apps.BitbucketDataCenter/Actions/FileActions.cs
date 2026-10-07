@@ -20,7 +20,8 @@ namespace Apps.BitbucketDataCenter.Actions;
 public class FileActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
     : BitbucketInvocable(invocationContext)
 {
-    [Action("Download file", Description = "Download a file from")]
+    // https://developer.atlassian.com/server/bitbucket/rest/v1005/api-group-repository/#api-api-latest-projects-projectkey-repos-repositoryslug-raw-path-get
+    [Action("Download file", Description = "Download a specific file from a repository")]
     public async Task<FileResponse> DownloadFile(
         [ActionParameter] ProjectIdentifier projectIdentifier,
         [ActionParameter] RepositoryIdentifier repositoryIdentifier,
