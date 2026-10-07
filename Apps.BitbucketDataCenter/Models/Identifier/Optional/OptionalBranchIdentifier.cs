@@ -6,6 +6,6 @@ namespace Apps.BitbucketDataCenter.Models.Identifier.Optional;
 
 public class OptionalBranchIdentifier
 {
-    [Display("Display ID"), DataSource(typeof(BranchDataHandler))]
+    [Display("Branch ID"), DataSource(typeof(BranchDataHandler))]
     public string? BranchId { get; set; }
 }
