@@ -1,6 +1,7 @@
 {
   "ConnectionDefinition": {
-    "token": ""
+    "accessToken": "",
+    "instanceUrl": ""
   },
   "TestFolder": "TestFiles"
 }

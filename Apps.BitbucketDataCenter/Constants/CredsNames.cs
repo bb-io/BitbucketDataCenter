@@ -2,5 +2,6 @@ namespace Apps.BitbucketDataCenter.Constants;
 
 public static class CredsNames
 {
-    public const string Token = "token";
+    public const string AccessToken = "accessToken";
+    public const string InstanceUrl = "instanceUrl";
 }

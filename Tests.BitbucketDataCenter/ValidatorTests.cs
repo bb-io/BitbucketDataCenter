@@ -1,4 +1,5 @@
 using Apps.BitbucketDataCenter.Connections;
+using Apps.BitbucketDataCenter.Constants;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Tests.BitbucketDataCenter.Base;
 
@@ -22,7 +23,9 @@ public class ConnectionValidatorTests : TestBase
     {
         var validator = new ConnectionValidator(InvocationContext);
         var newCredentials = Creds
-            .Select(x => new AuthenticationCredentialsProvider(x.KeyName, x.Value + "_incorrect"));
+            .Select(x => new AuthenticationCredentialsProvider(
+                x.KeyName, 
+                x.KeyName == CredsNames.InstanceUrl ? x.Value : x.Value + "_incorrect"));
 
         var result = await validator.ValidateConnection(newCredentials, CancellationToken.None);
         Console.WriteLine(result.Message);
