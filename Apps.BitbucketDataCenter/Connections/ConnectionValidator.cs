@@ -18,8 +18,7 @@ public class ConnectionValidator(InvocationContext invocationContext) : BaseInvo
             var client = new BitbucketClient(authenticationCredentialsProviders);
             var request = new BitbucketRequest("projects").AddQueryParameter("limit", 1);
 
-            var response = await client.ExecuteWithErrorHandling(request);
-
+            var response = await client.ExecuteAsync(request, cancellationToken);
             var isValid = response.StatusCode != System.Net.HttpStatusCode.Unauthorized;
             return new ConnectionValidationResponse
             {
