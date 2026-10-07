@@ -1,8 +1,11 @@
 ﻿using Blackbird.Applications.Sdk.Common.Authentication;
+using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 
 namespace Tests.BitbucketDataCenter.Base;
+
 public class TestBase
 {
     public IEnumerable<AuthenticationCredentialsProvider> Creds { get; set; }
@@ -14,13 +17,11 @@ public class TestBase
     public TestBase()
     {
         var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
-        Creds = config.GetSection("ConnectionDefinition").GetChildren()
-            .Select(x => new AuthenticationCredentialsProvider(x.Key, x.Value)).ToList();
-
-
-        var relativePath = config.GetSection("TestFolder").Value;
-        var projectDirectory = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.FullName;
-        var folderLocation = Path.Combine(projectDirectory, relativePath);
+        Creds = config
+            .GetSection("ConnectionDefinition")
+            .GetChildren()
+            .Select(x => new AuthenticationCredentialsProvider(x.Key, x.Value))
+            .ToList();
 
         InvocationContext = new InvocationContext
         {
@@ -28,5 +29,17 @@ public class TestBase
         };
 
         FileManager = new FileManager();
+    }
+
+    protected static void PrintDataHandlerResult(IEnumerable<DataSourceItem> items)
+    {
+        Console.WriteLine($"Count: {items.Count()}");
+        foreach (var dataSourceItem in items)
+            Console.WriteLine($"{dataSourceItem.Value} - {dataSourceItem.DisplayName}");
+    }
+
+    protected static void PrintJsonResult(object result)
+    {
+        Console.WriteLine(JsonConvert.SerializeObject(result, Formatting.Indented));
     }
 }
