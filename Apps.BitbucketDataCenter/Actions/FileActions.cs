@@ -72,7 +72,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
     // https://developer.atlassian.com/server/bitbucket/rest/v1005/api-group-repository/#api-api-latest-projects-projectkey-repos-repositoryslug-browse-path-put
     [Action("Upload file", Description = "Commit a file upload. Overwrites existing files")]
-    public async Task UploadFile(
+    public async Task<FileResponse> UploadFile(
         [ActionParameter] ProjectIdentifier projectIdentifier,
         [ActionParameter] RepositoryIdentifier repositoryIdentifier,
         [ActionParameter] OptionalFileIdentifier fileIdentifier,
@@ -85,21 +85,38 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         string filePath = string.IsNullOrWhiteSpace(fileIdentifier.FilePath)
             ? uploadInput.File.Name
             : fileIdentifier.FilePath;
+        string fileName = Path.GetFileName(filePath);
         string? sourceCommitId = await Client.GetLastCommitId(projectKey, repositorySlug, filePath, branchId);
 
         await using var fileStream = await fileManagementClient.DownloadAsync(uploadInput.File);
+        var transformationResult = Transformation.Load(fileStream, uploadInput.File.Name, uploadInput.File.ContentType);
+        
+        transformationResult.ReadContent(fileStream, InvocationContext.Logger);
         var fileBytes = await fileStream.GetByteData();
 
-        var request = new BitbucketRequest($"projects/{projectKey}/repos/{repositorySlug}/browse/{filePath}", Method.Put)
-        {
-            AlwaysMultipartFormData = true
-        };
-        request
+        string endpoint = $"projects/{projectKey}/repos/{repositorySlug}/browse/{filePath}";
+        var request = new BitbucketRequest(endpoint, Method.Put) { AlwaysMultipartFormData = true }
             .AddParameter("branch", branchId)
-            .AddFile("content", fileBytes, Path.GetFileName(filePath))
+            .AddFile("content", fileBytes, fileName)
             .AddParameter("message", uploadInput.CommitMessage ?? $"Upload {filePath}")
             .AddParameterIfNotEmpty("sourceCommitId", sourceCommitId);
 
         await Client.ExecuteWithErrorHandling(request);
+        
+        if (!transformationResult.Success) 
+            return new(uploadInput.File);
+        
+        var transformation = transformationResult.Value;
+        transformation.TargetSystemReference.AddMetadata(
+            Creds.Get(CredsNames.InstanceUrl).Value.TrimEnd('/'), 
+            projectKey, 
+            repositorySlug, 
+            branchIdentifier.BranchId, 
+            filePath, 
+            fileName);
+
+        var fileData = transformationResult.ToResultFile();
+        var uploadedFile = await fileManagementClient.UploadAsync(fileData.Stream, fileData.MediaType, fileData.FileName);
+        return new(uploadedFile);
     }
 }
