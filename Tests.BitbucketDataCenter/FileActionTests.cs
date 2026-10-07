@@ -1,6 +1,7 @@
 using Apps.BitbucketDataCenter.Actions;
 using Apps.BitbucketDataCenter.Models.Identifier;
 using Apps.BitbucketDataCenter.Models.Identifier.Optional;
+using Apps.BitbucketDataCenter.Models.Request.File;
 using Tests.BitbucketDataCenter.Base;
 
 namespace Tests.BitbucketDataCenter;
@@ -13,13 +14,14 @@ public class FileActionTests : TestBase
     {
         // Arrange
         var actions = new FileActions(InvocationContext, FileManager);
-        var projectIdentifier = new ProjectIdentifier { ProjectKey = "AUT" };
-        var repoIdentifier = new RepositoryIdentifier { RepositorySlug = "apidesigner" };
-        var fileIdenfitier = new FileIdentifier { FilePath = "data/apidesigner.xls" };
+        var projectIdentifier = new ProjectIdentifier { ProjectKey = "" };
+        var repoIdentifier = new RepositoryIdentifier { RepositorySlug = "" };
+        var fileIdenfitier = new FileIdentifier { FilePath = "" };
         var branchIdentifier = new OptionalBranchIdentifier { BranchId = "" };
+        var downloadInput = new DownloadFileRequest { ContentId = "test12345", SourceLanguage = "uk-UA" };
 
         // Act
-        var result = await actions.DownloadFile(projectIdentifier, repoIdentifier, fileIdenfitier, branchIdentifier);
+        var result = await actions.DownloadFile(projectIdentifier, repoIdentifier, fileIdenfitier, branchIdentifier, downloadInput);
 
         // Assert
         Console.WriteLine(result.File.Name);
