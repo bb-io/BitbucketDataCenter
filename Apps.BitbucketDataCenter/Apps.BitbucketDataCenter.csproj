@@ -7,12 +7,13 @@
         <Product>Bitbucket Data Center [Beta]</Product>
         <Description>Bitbucket Data Center is a self-managed solution that provides source code collaboration for professional teams of any size</Description>
         <Version>1.0.0</Version>
-        <PackageId>Apps.BitbucketDataCenter</PackageId>
+        <AssemblyName>Apps.BitbucketDataCenter</AssemblyName>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.17.0" />
         <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.1.0-rc.8709" />
+        <PackageReference Include="Blackbird.Filters" Version="1.2.19" />
     </ItemGroup>
 
     <ItemGroup>
