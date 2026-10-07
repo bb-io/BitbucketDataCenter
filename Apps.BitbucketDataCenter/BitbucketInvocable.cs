@@ -8,10 +8,10 @@ namespace Apps.BitbucketDataCenter;
 public class BitbucketInvocable : BaseInvocable
 {
     protected AuthenticationCredentialsProvider[] Creds => InvocationContext.AuthenticationCredentialsProviders.ToArray();
-    protected BitbucketClient BitbucketClient { get; }
+    protected BitbucketClient Client { get; }
     
     public BitbucketInvocable(InvocationContext invocationContext) : base(invocationContext)
     {
-        BitbucketClient = new(Creds);
+        Client = new(Creds);
     }
 }
