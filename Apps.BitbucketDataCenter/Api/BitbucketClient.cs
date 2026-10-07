@@ -24,7 +24,7 @@ public class BitbucketClient : BlackBirdRestClient
     public async Task<List<T>> Paginate<T>(RestRequest request, int? paginateTimes = null)
     {
         int limit = 100;
-        int nextPageStart = 0;
+        int? nextPageStart = 0;
         int timesPaginated = 0;
         
         List<T> resultValues = [];
@@ -36,7 +36,7 @@ public class BitbucketClient : BlackBirdRestClient
             if (paginateTimes == timesPaginated)
                 break;
             
-            request.AddOrUpdateParameter("start", nextPageStart);
+            request.AddOrUpdateParameter("start", nextPageStart!.Value);
             
             var paginatedResult = await ExecuteWithErrorHandling<PaginatedResponse<T>>(request);
             resultValues.AddRange(paginatedResult.Values);
@@ -45,6 +45,9 @@ public class BitbucketClient : BlackBirdRestClient
             if (paginatedResult.IsLastPage)
                 break;
 
+            if (paginatedResult.NextPageStart is null)
+                break;
+            
             nextPageStart = paginatedResult.NextPageStart;
         }
 

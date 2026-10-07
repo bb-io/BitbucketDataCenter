@@ -17,5 +17,5 @@ public class PaginatedResponse<T>
     public List<T> Values { get; set; } = [];
 
     [JsonProperty("nextPageStart")]
-    public int NextPageStart { get; set; }
+    public int? NextPageStart { get; set; }
 }
