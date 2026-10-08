@@ -54,6 +54,22 @@ public class HandlerTests : TestBase
     }
     
     [TestMethod]
+    public async Task FolderDataHandler_ReturnsFolders()
+    {
+        // Arrange
+        var projectIdentifier = new ProjectIdentifier { ProjectKey = "AUT" };
+        var repoIdentifier = new RepositoryIdentifier { RepositorySlug = "apidesigner" };
+        var handler = new FolderDataHandler(InvocationContext, projectIdentifier, repoIdentifier);
+
+        // Act
+        var result = await handler.GetDataAsync(new DataSourceContext { SearchString = "" }, CancellationToken.None);
+
+        // Assert
+        PrintDataHandlerResult(result);
+        Assert.IsNotNull(result);
+    }
+    
+    [TestMethod]
     public async Task BranchDataHandler_ReturnsBranches()
     {
         // Arrange
