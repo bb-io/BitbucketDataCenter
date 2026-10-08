@@ -8,6 +8,6 @@ public class UploadFileRequest
     [Display("File")]
     public FileReference File { get; set; } = null!;
 
-    [Display("Commit message")]
+    [Display("Commit message", Description = "Defaults to 'Upload {path}'")]
     public string? CommitMessage { get; set; }
 }
