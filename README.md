@@ -32,6 +32,12 @@ When creating the token, grant it at least **Project read** and **Repository wri
 - **Upload file** Commit a file upload. Creates a new file or overwrites the existing one
 - **Upload files** Commit multiple files, one commit per file. Creates new files or overwrites existing ones
 
+## Events
+
+### Files
+
+- **On files modified across repositories** Triggered when files across specific repositories of one project are modified
+
 ## Feedback
 
 Do you want to use this app or do you have feedback on our implementation? Reach out to us using the [established channels](https://www.blackbird.io/) or create an issue.

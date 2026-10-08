@@ -9,4 +9,7 @@ public class BranchEntity
 
     [JsonProperty("displayId")]
     public string DisplayId { get; set; } = string.Empty;
+    
+    [JsonProperty("latestCommit")]
+    public string LatestCommit { get; set; } = string.Empty;
 }
