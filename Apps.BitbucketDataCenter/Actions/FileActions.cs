@@ -70,7 +70,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         return new(file);
     }
 
-    [Action("Upload file", Description = "Commit a file upload - either create a new file or overwrite the existing one")]
+    [Action("Upload file", Description = "Commit a file upload. Creates a new file or overwrites the existing one")]
     public async Task<FileResponse> UploadFile(
         [ActionParameter] ProjectIdentifier projectIdentifier,
         [ActionParameter] RepositoryIdentifier repositoryIdentifier,
