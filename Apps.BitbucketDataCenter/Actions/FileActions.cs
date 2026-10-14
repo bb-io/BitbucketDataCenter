@@ -133,7 +133,8 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         string? folderPath,
         string? commitMessage)
     {
-        await using var fileStream = await fileManagementClient.DownloadAsync(file);
+        await using var remoteStream = await fileManagementClient.DownloadAsync(file);
+        await using var fileStream = new MemoryStream(await remoteStream.GetByteData());
         var transformationResult = Transformation.Load(fileStream, file.Name, file.ContentType);
         fileStream.Position = 0;
 
