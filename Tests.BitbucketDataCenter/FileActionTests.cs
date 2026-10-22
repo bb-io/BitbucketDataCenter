@@ -1,4 +1,5 @@
 using Apps.BitbucketDataCenter.Actions;
+using Apps.BitbucketDataCenter.Constants;
 using Apps.BitbucketDataCenter.Models.Identifier;
 using Apps.BitbucketDataCenter.Models.Identifier.Optional;
 using Apps.BitbucketDataCenter.Models.Request.File;
@@ -51,5 +52,11 @@ public class FileActionTests : TestBase
         // Assert
         Console.WriteLine(result.File.Name);
         Assert.IsNotNull(result.File);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(result.CommitId));
+        string instanceUrl = Creds.First(x => x.KeyName == CredsNames.InstanceUrl).Value.TrimEnd('/');
+        Assert.AreEqual(
+            $"{instanceUrl}/projects/{Uri.EscapeDataString(projectIdentifier.ProjectKey)}" +
+            $"/repos/{Uri.EscapeDataString(repositoryIdentifier.RepositorySlug)}/commits/{Uri.EscapeDataString(result.CommitId)}",
+            result.CommitUrl);
     }
 }
