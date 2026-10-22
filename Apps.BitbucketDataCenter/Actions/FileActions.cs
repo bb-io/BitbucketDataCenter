@@ -1,6 +1,7 @@
 using System.Net.Mime;
 using Apps.BitbucketDataCenter.Api;
 using Apps.BitbucketDataCenter.Extensions;
+using Apps.BitbucketDataCenter.Models.Entity.Commit;
 using Apps.BitbucketDataCenter.Models.Identifier;
 using Apps.BitbucketDataCenter.Models.Identifier.Optional;
 using Apps.BitbucketDataCenter.Models.Request.File;
@@ -71,7 +72,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
     }
 
     [Action("Upload file", Description = "Commit a file upload. Creates a new file or overwrites the existing one")]
-    public async Task<FileResponse> UploadFile(
+    public async Task<UploadFileResponse> UploadFile(
         [ActionParameter] ProjectIdentifier projectIdentifier,
         [ActionParameter] RepositoryIdentifier repositoryIdentifier,
         [ActionParameter] OptionalFileIdentifier fileIdentifier,
@@ -82,7 +83,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         string repositorySlug = repositoryIdentifier.RepositorySlug;
         string branchId = branchIdentifier.BranchId ?? await Client.GetDefaultBranchId(projectKey, repositorySlug);
 
-        var file = await CommitFile(
+        return await CommitFile(
             projectKey, 
             repositorySlug, 
             branchId, 
@@ -90,7 +91,6 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             fileIdentifier.FilePath,
             folderPath: null,
             uploadInput.CommitMessage);
-        return new(file);
     }
     
     [Action("Upload files", Description = "Commit multiple files, one commit per file. Creates new files or overwrites existing ones")]
@@ -107,9 +107,10 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
         // Sequential on purpose: each commit moves branch head so parallel requests would conflict
         var uploadedFiles = new List<FileReference>();
+        var commits = new List<CommitResponse>();
         foreach (var file in uploadInput.Files)
         {
-            var commitedFile = await CommitFile(
+            var committedFile = await CommitFile(
                 projectKey, 
                 repositorySlug,
                 branchId,
@@ -117,14 +118,15 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                 explicitPath: null,
                 folderIdentifier.FolderPath,
                 uploadInput.CommitMessage);
-            uploadedFiles.Add(commitedFile);
+            uploadedFiles.Add(committedFile.File);
+            commits.Add(new(committedFile.CommitId, committedFile.CommitUrl));
         }
 
-        return new(uploadedFiles);
+        return new(uploadedFiles, commits);
     }
     
     // https://developer.atlassian.com/server/bitbucket/rest/v1005/api-group-repository/#api-api-latest-projects-projectkey-repos-repositoryslug-browse-path-put
-    private async Task<FileReference> CommitFile(
+    private async Task<UploadFileResponse> CommitFile(
         string projectKey,
         string repositorySlug,
         string branchId,
@@ -157,10 +159,12 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             .AddParameter("message", commitMessage ?? $"Upload {filePath}")
             .AddParameterIfNotEmpty("sourceCommitId", sourceCommitId);
 
-        await Client.ExecuteWithErrorHandling(request);
+        var commit = await Client.ExecuteWithErrorHandling<CommitEntity>(request);
+        string commitUrl = $"{InstanceUrl.TrimEnd('/')}/projects/{Uri.EscapeDataString(projectKey)}" +
+                           $"/repos/{Uri.EscapeDataString(repositorySlug)}/commits/{Uri.EscapeDataString(commit.Id)}";
 
         if (!transformationResult.Success)
-            return file;
+            return new(file, commit.Id, commitUrl);
 
         transformationResult.Value.TargetSystemReference.AddMetadata(
             InstanceUrl, 
@@ -171,6 +175,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             fileName);
 
         var fileData = transformationResult.ToResultFile();
-        return await fileManagementClient.UploadAsync(fileData.Stream, fileData.MediaType, fileData.FileName);
+        var uploadedFile = await fileManagementClient.UploadAsync(fileData.Stream, fileData.MediaType, fileData.FileName);
+        return new(uploadedFile, commit.Id, commitUrl);
     }
 }

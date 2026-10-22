@@ -29,8 +29,8 @@ When creating the token, grant it at least **Project read** and **Repository wri
 ### Files
 
 - **Download file** Download a specific file from a repository
-- **Upload file** Commit a file upload. Creates a new file or overwrites the existing one
-- **Upload files** Commit multiple files, one commit per file. Creates new files or overwrites existing ones
+- **Upload file** Commit a file upload. Creates a new file or overwrites the existing one. Returns the file, commit ID, and commit URL
+- **Upload files** Commit multiple files, one commit per file. Creates new files or overwrites existing ones. Returns the files and a list of commits containing commit IDs and commit URLs, in the same order as the files
 
 ## Events
 
