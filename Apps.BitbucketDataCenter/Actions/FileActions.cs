@@ -1,5 +1,6 @@
 using System.Net.Mime;
 using Apps.BitbucketDataCenter.Api;
+using Apps.BitbucketDataCenter.Constants;
 using Apps.BitbucketDataCenter.Extensions;
 using Apps.BitbucketDataCenter.Models.Entity.Commit;
 using Apps.BitbucketDataCenter.Models.Identifier;
@@ -72,7 +73,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
     }
 
     [Action("Upload file", Description = "Commit a file upload. Creates a new file or overwrites the existing one")]
-    public async Task<UploadFileResponse> UploadFile(
+    public async Task<UploadFileResponse?> UploadFile(
         [ActionParameter] ProjectIdentifier projectIdentifier,
         [ActionParameter] RepositoryIdentifier repositoryIdentifier,
         [ActionParameter] OptionalFileIdentifier fileIdentifier,
@@ -106,8 +107,8 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         string branchId = branchIdentifier.BranchId ?? await Client.GetDefaultBranchId(projectKey, repositorySlug);
 
         // Sequential on purpose: each commit moves branch head so parallel requests would conflict
-        var uploadedFiles = new List<FileReference>();
-        var commits = new List<CommitResponse>();
+        var uploadedFiles = new List<FileReference?>();
+        var commits = new List<CommitResponse?>();
         foreach (var file in uploadInput.Files)
         {
             var committedFile = await CommitFile(
@@ -118,15 +119,16 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                 explicitPath: null,
                 folderIdentifier.FolderPath,
                 uploadInput.CommitMessage);
-            uploadedFiles.Add(committedFile.File);
-            commits.Add(new(committedFile.CommitId, committedFile.CommitUrl));
+            
+            uploadedFiles.Add(committedFile?.File);
+            commits.Add(committedFile is null ? null : new(committedFile.CommitId!, committedFile.CommitUrl!));
         }
 
         return new(uploadedFiles, commits);
     }
     
     // https://developer.atlassian.com/server/bitbucket/rest/v1005/api-group-repository/#api-api-latest-projects-projectkey-repos-repositoryslug-browse-path-put
-    private async Task<UploadFileResponse> CommitFile(
+    private async Task<UploadFileResponse?> CommitFile(
         string projectKey,
         string repositorySlug,
         string branchId,
@@ -159,7 +161,13 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             .AddParameter("message", commitMessage ?? $"Upload {filePath}")
             .AddParameterIfNotEmpty("sourceCommitId", sourceCommitId);
 
-        var commit = await Client.ExecuteWithErrorHandling<CommitEntity>(request);
+        var commit = await Client.ExecuteUnlessException<CommitEntity>(request, BitbucketExceptionMessages.FileContentUnmodified);
+        if (commit is null)
+        {
+            InvocationContext.Logger?.LogWarning($"File {filePath} was skipped - the content is the same", []);
+            return null;
+        }
+        
         string commitUrl = $"{InstanceUrl.TrimEnd('/')}/projects/{Uri.EscapeDataString(projectKey)}" +
                            $"/repos/{Uri.EscapeDataString(repositorySlug)}/commits/{Uri.EscapeDataString(commit.Id)}";
 

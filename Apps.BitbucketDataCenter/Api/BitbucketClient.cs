@@ -54,6 +54,19 @@ public class BitbucketClient : BlackBirdRestClient
         return resultValues;
     }
 
+    public async Task<T?> ExecuteUnlessException<T>(RestRequest request, string ignoredExceptionName) where T : class
+    {
+        var response = await ExecuteAsync(request);
+        if (response.IsSuccessStatusCode)
+            return JsonConvert.DeserializeObject<T>(response.Content!);
+
+        bool isIgnored = TryParseError(response.Content)?.Errors.Any(x => x.ExceptionName == ignoredExceptionName) == true;
+        if (isIgnored)
+            return null;
+
+        throw ConfigureErrorException(response);
+    }
+    
     // https://developer.atlassian.com/server/bitbucket/rest/v1005/intro/#errors---validation
     protected override Exception ConfigureErrorException(RestResponse response)
     {
@@ -63,22 +76,32 @@ public class BitbucketClient : BlackBirdRestClient
         if (string.IsNullOrWhiteSpace(responseContent))
             return new PluginApplicationException($"{statusCodePart} Server returned no content");
 
-        ErrorResponse? errorResponse;
-        try
+        var errorResponse = TryParseError(responseContent);
+        if (errorResponse is null)
         {
-            errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(responseContent);
-        }
-        catch (JsonReaderException)
-        {
-            string rawErrorContent = responseContent.Substring(0, Math.Min(responseContent.Length, 300));
+            string rawErrorContent = responseContent[..Math.Min(responseContent.Length, 300)];
             return new PluginApplicationException($"{statusCodePart} Couldn't deserialize a JSON error. Raw: {rawErrorContent}");
         }
 
-        if (errorResponse is null || errorResponse.Errors.Count == 0)
+        if (errorResponse.Errors.Count == 0)
             return new PluginApplicationException($"{statusCodePart} An unknown error occured");
         
-        var errorMessages = errorResponse.Errors.Select(x => x.Message);
-        string errorMessage = string.Join("; ", errorMessages);
+        string errorMessage = string.Join("; ", errorResponse.Errors.Select(x => x.Message));
         return new PluginApplicationException(errorMessage);
+    }
+
+    private static ErrorResponse? TryParseError(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return null;
+
+        try
+        {
+            return JsonConvert.DeserializeObject<ErrorResponse>(content);
+        }
+        catch (JsonReaderException)
+        {
+            return null;
+        }
     }
 }
